@@ -1,0 +1,138 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Reservation {
+  id              String            @id @default(uuid())
+  visitorName     String            // 방문객 이름
+  visitorEmail    String            // 방문객 이메일
+  birthDate       String            // 생년월일 (YYMMDD)
+  phoneNumber     String            // 연락처
+  organization    String            // 소속사명
+  carNumber       String?           // 차량번호 (선택)
+  carType         String?           // 차종 (선택)
+  purpose         String            // 방문 목적
+  visitDateTime   DateTime          // 방문 시작 일시
+  visitEndDateTime DateTime?         // 방문 종료 일시 (선택/기간형 지원)
+  status          String            @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  // 만나실 분(담당자) 정보
+  hostName        String            // 담당자 이름
+  hostPhone       String            // 담당자 연락처
+  hostEmail       String            // 담당자 이메일
+  hostDepartment  String?           // 담당자 부서
+
+  // 약관 및 서약서 동의 여부 (필수)
+  termsAgreed     Boolean           // 방문신청약관 동의
+  privacyAgreed   Boolean           // 개인정보처리방침 동의
+  securityAgreed  Boolean           // 정보보안 서약서 동의
+  secretAgreed    Boolean           // 방문객 영업비밀 보호 서약서 동의
+  safetyAgreed    Boolean           // 안전수칙 준수 서약서 동의
+  
+  // 입출입 보안 관리 속성
+  enteredAt           DateTime?         // 입실 일시
+  exitedAt            DateTime?         // 퇴실 일시
+  temporaryCardNumber String?           // 임시 출입 카드 번호
+  idCardKept          Boolean           @default(false) // 신분증 보관 여부
+  deviceSealed        Boolean           @default(false) // 디바이스 기기 보안 실링 여부
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  reminderSent    Boolean           @default(false)
+  
+  companions      Companion[]
+}
+
+model Companion {
+  id            String      @id @default(uuid())
+  name          String      // 동행자 이름
+  email         String      // 동행자 이메일
+  phoneNumber   String      // 동행자 연락처
+  organization  String      // 동행자 소속회사
+  carNumber     String?     // 동행자 차량번호
+  equipment     String?     // 동행자 반입장비 (선택)
+  notes         String?     // 동행자 기타사항 (선택)
+  
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+}
+
+model SmtpSetting {
+  id           String   @id @default("singleton")
+  smtpHost     String   // SMTP 호스트
+  smtpPort     Int      // SMTP 포트
+  smtpUser     String   // SMTP 사용자 계정
+  smtpPassword String   // SMTP 비밀번호
+  secure       Boolean  @default(true) // SSL/TLS 사용 여부
+  senderEmail  String   // 발신인 이메일 주소
+  senderName   String   // 발신인명
+  updatedAt    DateTime @updatedAt
+}
+
+model AdminConfig {
+  id         String   @id @default("singleton")
+  adminEmail String   // 관리자 권한 이메일 주소
+  updatedAt  DateTime @updatedAt
+}
+
+model SecurityToken {
+  id        String   @id @default(uuid())
+  token     String   @unique // 보안 토큰 값 (UUID 등)
+  email     String   // 대상 관리자 이메일 주소
+  expiresAt DateTime // 토큰 만료 시간
+  createdAt DateTime @default(now())
+}
+
+model SecurityStaff {
+  id        String   @id @default(uuid())
+  email     String   @unique // 보안협력사 담당자 이메일 주소
+  name      String?  // 담당자명 (선택)
+  createdAt DateTime @default(now())
+}
+
+model EmployeeVehicle {
+  id           String   @id @default(uuid())
+  employeeName String   // 사원명
+  phoneNumber  String   @unique // 전화번호
+  department   String   // 부서명
+  carNumber    String   @unique // 차량 번호
+  createdAt    DateTime @default(now())
+}
+
+model RotationViolation {
+  id           String   @id @default(uuid())
+  carNumber    String   // 위반 차량 번호
+  employeeName String?  // 위반 직원명 (등록차량일 시)
+  department   String?  // 위반 부서명 (등록차량일 시)
+  violatedAt   DateTime @default(now()) // 단속 시간
+  imageUrl     String   // 단속 당시 캡처 이미지 (Base64 등)
+}
+
+model LprEvent {
+  id           String   @id @default(uuid())
+  carNumber    String   // 인식 차량 번호
+  eventType    String   // 이벤트 유형 ("VISITOR" | "VIOLATION")
+  message      String   // 전송 메시지
+  visitorName  String?  // 방문객명 (방문객일 시)
+  hostName     String?  // 호스트명 (방문객일 시)
+  employeeName String?  // 사원명 (5부제 위반일 시)
+  department   String?  // 부서 (5부제 위반일 시)
+  imageUrl     String?  // 캡처 이미지
+  read         Boolean  @default(false) // 경비실 대시보드 읽음/전송 여부
+  createdAt    DateTime @default(now())
+}
+
+model BrandConfig {
+  id            String   @id @default("singleton")
+  companyName   String   @default("네티젠 테크") // 회사명
+  locationName  String   @default("본사")       // 사업장/지점명
+  logoUrl       String?  // CI 로고 이미지 (URL 또는 Base64)
+  faviconUrl    String?  // 파비콘 이미지 (URL 또는 Base64)
+  copyrightText String   @default("© 2026 Netizen Tech. All Rights Reserved.") // 푸터 카피라이트
+  licenseKey    String?  // 저작권 표시 해제 암호화 라이선스 키
+  updatedAt     DateTime @updatedAt
+}
