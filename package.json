@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:host": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
+    "start:host": "next start -H 0.0.0.0 -p 3000",
     "lint": "eslint",
     "test": "jest",
     "postinstall": "node -e \"if (!require('fs').existsSync('.env')) require('fs').writeFileSync('.env', 'DATABASE_URL=\\\"file:./dev.db\\\"\\nLPR_API_SECRET=\\\"lpr-secure-device-key-default\\\"\\n')\""
